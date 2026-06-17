@@ -110,7 +110,7 @@ app.get("/api/health", (req, res) => {
 // MULTIMODAL CHAT / VISION PROXY
 app.post("/api/chat", async (req: express.Request, res: express.Response) => {
   try {
-    const { prompt, systemInstruction, history, attachment } = req.body;
+    const { prompt, systemInstruction, history, attachment, useSearch, useMaps, useHighThinking, useLowLatency } = req.body;
     const ai = getAI();
 
     // Prepare contents
@@ -149,14 +149,34 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
       parts: currentParts
     });
 
+    let tools: any[] = [];
+    if (useSearch) tools.push({ googleSearch: {} });
+    if (useMaps) tools.push({ googleMaps: {} });
+
+    let modelToUse = "gemini-3.5-flash";
+    if (useLowLatency) modelToUse = "gemini-3.1-flash-lite";
+    // For video analysis or high thinking, we use pro
+    if (useHighThinking || (attachment && attachment.mimeType.startsWith("video/"))) {
+      modelToUse = "gemini-3.1-pro-preview";
+    }
+
+    const config: any = {
+      systemInstruction: systemInstruction || "You are an all-in-one AI Companion ready to assist with any request.",
+    };
+
+    if (tools.length > 0) config.tools = tools;
+    if (useHighThinking) {
+      // Do not set maxOutputTokens, set thinkingLevel to HIGH
+      config.thinkingConfig = { thinkingLevel: "HIGH" };
+    } else {
+      config.temperature = 0.7;
+    }
+
     const { response, modelUsed } = await generateContentWithHeal(
       ai,
-      "gemini-3.5-flash",
+      modelToUse,
       contents,
-      {
-        systemInstruction: systemInstruction || "You are an all-in-one AI Companion ready to assist with any request.",
-        temperature: 0.7,
-      }
+      config
     );
 
     res.json({ text: response.text, modelUsed: modelUsed });
@@ -169,7 +189,7 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
 // IMAGE GENERATION PROXY
 app.post("/api/image", async (req: express.Request, res: express.Response) => {
   try {
-    const { prompt, aspectRatio = "1:1" } = req.body;
+    const { prompt, aspectRatio = "1:1", size = "1K" } = req.body;
     if (!prompt) {
       res.status(400).json({ error: "Prompt is required for image generation." });
       return;
@@ -177,22 +197,24 @@ app.post("/api/image", async (req: express.Request, res: express.Response) => {
 
     const ai = getAI();
     
-    // We call generateContent with gemini-2.5-flash-image for standard free tiers
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: {
+    // We call generateContent with gemini-3-pro-image-preview
+    const { response } = await generateContentWithHeal(
+      ai,
+      "gemini-3-pro-image-preview",
+      {
         parts: [
           {
-            text: prompt,
+            text: `[Target resolution: ${size}]. ${prompt}`,
           },
         ],
       },
-      config: {
+      {
         imageConfig: {
           aspectRatio: aspectRatio,
         },
       },
-    });
+      [] // No backup models to ensure we hit the pro image model
+    );
 
     let base64Image = "";
     if (response.candidates && response.candidates[0]?.content?.parts) {
@@ -215,6 +237,39 @@ app.post("/api/image", async (req: express.Request, res: express.Response) => {
   }
 });
 
+// AUDIO TRANSCRIPTION PROXY
+app.post("/api/transcribe", async (req: express.Request, res: express.Response) => {
+  try {
+    const { audioData, mimeType } = req.body;
+    if (!audioData) {
+      return res.status(400).json({ error: "Audio data is required." });
+    }
+    
+    let base64Data = audioData;
+    if (base64Data.includes(";base64,")) {
+      base64Data = base64Data.split(";base64,")[1];
+    }
+
+    const ai = getAI();
+    const { response } = await generateContentWithHeal(
+      ai,
+      "gemini-3.5-flash",
+      [{
+        inlineData: {
+          data: base64Data,
+          mimeType: mimeType || "audio/webm"
+        }
+      }, { text: "Provide a highly accurate transcription of this audio. Output only the transcribed text." }],
+      {}
+    );
+
+    res.json({ text: response.text });
+  } catch (e: any) {
+    console.error("Transcription error:", e);
+    res.status(500).json({ error: e.message || "Failed to transcribe." });
+  }
+});
+
 // TEXT TO SPEECH (TTS) PROXY
 app.post("/api/tts", async (req: express.Request, res: express.Response) => {
   try {
@@ -232,10 +287,11 @@ app.post("/api/tts", async (req: express.Request, res: express.Response) => {
 
     const ai = getAI();
     
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: text }] }],
-      config: {
+    const { response } = await generateContentWithHeal(
+      ai,
+      "gemini-3.1-flash-tts-preview",
+      [{ parts: [{ text: text }] }],
+      {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
           voiceConfig: {
@@ -243,7 +299,8 @@ app.post("/api/tts", async (req: express.Request, res: express.Response) => {
           },
         },
       },
-    });
+      [] // No backup models for TTS yet, but enables auto-retry
+    );
 
     const part = response.candidates?.[0]?.content?.parts?.[0];
     const base64Audio = part?.inlineData?.data;
@@ -481,10 +538,8 @@ app.post("/api/video", async (req: express.Request, res: express.Response) => {
     const hasRefImages = Array.isArray(referenceImages) && referenceImages.length > 0;
     const is4K = quality === "4K-UHD" || quality === "4K" || quality === "4k";
     
-    // Choose Veo 3.1 model based on requested feature level (lite for standard/SD, full for 4K or referencing)
-    const modelToUse = (hasRefImages || is4K) 
-      ? 'veo-3.1-generate-preview' 
-      : 'veo-3.1-lite-generate-preview';
+    // Always use fast generate preview as requested
+    const modelToUse = 'veo-3.1-fast-generate-preview';
 
     // Map resolutions: lowest Veo resolution is 720p, upgrade 480p to 720p dynamically!
     let resolutionToUse = "720p";
@@ -508,7 +563,7 @@ app.post("/api/video", async (req: express.Request, res: express.Response) => {
       };
 
       // Handle Reference Images (up to 3)
-      if (hasRefImages && modelToUse === 'veo-3.1-generate-preview') {
+      if (hasRefImages) {
         veoConfig.referenceImages = referenceImages.slice(0, 3).map((b: string) => ({
           image: {
             imageBytes: cleanBase64(b),

@@ -5,15 +5,16 @@ import OmniSpeaker from "./components/OmniSpeaker";
 import OmniComposer from "./components/OmniComposer";
 import OmniPlanner from "./components/OmniPlanner";
 import LeoMessenger from "./components/LeoMessenger";
+import OmniVideo from "./components/OmniVideo";
 import SubscriptionModal from "./components/SubscriptionModal";
 import SignInModal from "./components/SignInModal";
 import AdminAutoHealer from "./components/AdminAutoHealer";
 import { UserSession } from "./types";
 
 // Icons
-import { Compass, Sparkles, Volume2, Headphones, Layers, HelpCircle, Activity, Satellite, Shield, Crown, MessageSquare, LogIn, LogOut } from "lucide-react";
+import { Compass, Sparkles, Volume2, Headphones, Layers, HelpCircle, Activity, Satellite, Shield, Crown, MessageSquare, LogIn, LogOut, Video } from "lucide-react";
 
-type TabId = "orchestrator" | "synthetics" | "narration" | "messenger" | "acoustics" | "blueprints";
+type TabId = "orchestrator" | "synthetics" | "director" | "narration" | "messenger" | "acoustics" | "blueprints";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("orchestrator");
@@ -96,6 +97,14 @@ export default function App() {
             }`}
           >
             Synthetics
+          </button>
+          <button
+            onClick={() => setActiveTab("director")}
+            className={`cursor-pointer transition-all pb-1 ${
+              activeTab === "director" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
+            }`}
+          >
+            Director
           </button>
           <button
             onClick={() => setActiveTab("narration")}
@@ -205,6 +214,17 @@ export default function App() {
                 Studio Artist Config
               </li>
               <li
+                onClick={() => setActiveTab("director")}
+                className={`flex items-center gap-3 text-xs p-2.5 rounded-lg border transition-all cursor-pointer select-none ${
+                  activeTab === "director"
+                    ? "text-gray-200 bg-white/5 border-white/10"
+                    : "text-gray-450 hover:text-white hover:bg-white/2 border-transparent"
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${activeTab === "director" ? "bg-amber-400 font-bold" : "bg-gray-600"}`} />
+                Veo Video Director
+              </li>
+              <li
                 onClick={() => setActiveTab("narration")}
                 className={`flex items-center gap-3 text-xs p-2.5 rounded-lg border transition-all cursor-pointer select-none ${
                   activeTab === "narration"
@@ -292,6 +312,7 @@ export default function App() {
             {([
               { id: "orchestrator", label: "Guide", icon: Compass },
               { id: "synthetics", label: "Studio", icon: Sparkles },
+              { id: "director", label: "Director", icon: Video },
               { id: "narration", label: "Speaker", icon: Volume2 },
               { id: "messenger", label: "Messenger", icon: MessageSquare },
               { id: "acoustics", label: "Synthesizer", icon: Headphones },
@@ -302,7 +323,7 @@ export default function App() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => setActiveTab(tab.id as TabId)}
                   className={`flex items-center gap-2 text-xs px-3.5 py-2.5 rounded-xl border shrink-0 cursor-pointer ${
                     matches
                       ? "bg-amber-600/20 border-amber-500/50 text-white font-bold"
@@ -321,6 +342,7 @@ export default function App() {
             <h1 className="text-3xl sm:text-4xl font-serif italic text-white mb-1.5 leading-tight select-none">
               {activeTab === "orchestrator" && "Conversational Companion"}
               {activeTab === "synthetics" && "Photovoltaic Synthesis"}
+              {activeTab === "director" && "Cinematic Director"}
               {activeTab === "narration" && "Acoustic Narration Panel"}
               {activeTab === "messenger" && "Enigma Secured E2EE Handshake"}
               {activeTab === "acoustics" && "Harmonic Arranger V2"}
@@ -329,6 +351,7 @@ export default function App() {
             <p className="text-xs text-slate-400 mb-6 max-w-2xl select-none leading-relaxed">
               {activeTab === "orchestrator" && "Converse dynamically with general adapters, engineering mentors, mathematical codex tutors, and linguistic specialists."}
               {activeTab === "synthetics" && "Synthesize custom concept illustrations safely using professional prompts rendered straight via our media servers."}
+              {activeTab === "director" && "Direct short films or animate starting images with powerful Veo 3 engine capabilities."}
               {activeTab === "narration" && "Configure high-integrity narration voices 'Zephyr', 'Kore', and more to read deep scripts out loud."}
               {activeTab === "messenger" && "Exchange symmetric AES-256 encrypted messages safely utilizing ephemeral private keys."}
               {activeTab === "acoustics" && "Program generative synthesizer loops, custom lofi chords, and lyric sheets generated symmetrically from sound cues."}
@@ -344,6 +367,11 @@ export default function App() {
               {activeTab === "synthetics" && (
                 <div onFocus={() => logEvent("Rendered image asset payload.")}>
                   <OmniGen />
+                </div>
+              )}
+              {activeTab === "director" && (
+                <div onFocus={() => logEvent("Directed cinematic footage generation.")}>
+                  <OmniVideo />
                 </div>
               )}
               {activeTab === "narration" && (

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Message, Persona } from "../types";
-import { Send, Upload, Trash2, MessageSquare, Loader2, Image as ImageIcon, X, Copy, Check, Share2, ThumbsUp, ThumbsDown, FileText, Download } from "lucide-react";
+import { Send, Upload, Trash2, MessageSquare, Loader2, Image as ImageIcon, X, Copy, Check, Share2, ThumbsUp, ThumbsDown, FileText, Download, Mic, Square, Search, MapPin, Zap, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
 
@@ -81,6 +81,17 @@ export default function OmniChat() {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   // Advanced interactivity states
+  const [useSearch, setUseSearch] = useState(false);
+  const [useMaps, setUseMaps] = useState(false);
+  const [useHighThinking, setUseHighThinking] = useState(false);
+  const [useLowLatency, setUseLowLatency] = useState(false);
+
+  // Audio recording
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+
   const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
   const [feedbackStates, setFeedbackStates] = useState<Record<string, "like" | "dislike" | null>>({});
   const [pdfStates, setPdfStates] = useState<Record<string, "prompt" | "generating" | "done">>({});
@@ -232,8 +243,8 @@ export default function OmniChat() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setErrorStatus("Upload error: Currently, only image attachments are supported for visual analysis.");
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      setErrorStatus("Upload error: Only image or video attachments are supported.");
       return;
     }
 
@@ -254,6 +265,63 @@ export default function OmniChat() {
   const handleRemoveAttachment = () => {
     setAttachment(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const startRecording = async () => {
+    try {
+      setAudioError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          setIsLoading(true);
+          try {
+            const response = await fetch("/api/transcribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ audioData: base64Audio, mimeType: 'audio/webm' })
+            });
+            const data = await response.json();
+            if (data.text) {
+              setInputValue(prev => prev + " " + data.text);
+            } else {
+              setAudioError(data.error || "Failed to transcribe.");
+            }
+          } catch (e: any) {
+             setAudioError(e.message || "Failed to contact transcription service.");
+          } finally {
+             setIsLoading(false);
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      setAudioError("Microphone access denied. Please allow microphone permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
   };
 
   const handleSendMessage = async (customPrompt?: string) => {
@@ -292,7 +360,11 @@ export default function OmniChat() {
           attachment: userMsg.attachment ? {
             data: userMsg.attachment.data,
             mimeType: userMsg.attachment.mimeType
-          } : undefined
+          } : undefined,
+          useSearch,
+          useMaps,
+          useHighThinking,
+          useLowLatency
         })
       });
 
@@ -615,13 +687,45 @@ export default function OmniChat() {
             </div>
           )}
 
+          {audioError && (
+            <div className="text-xs text-red-500 mb-1 font-medium">{audioError}</div>
+          )}
+
+          {/* Settings Toggles */}
+          <div className="flex flex-wrap items-center gap-3 text-[10px] sm:text-xs">
+            <button
+              onClick={() => setUseSearch(!useSearch)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${useSearch ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+            >
+              <Search size={13} /> Google Search
+            </button>
+            <button
+              onClick={() => setUseMaps(!useMaps)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${useMaps ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+            >
+              <MapPin size={13} /> Maps Grounding
+            </button>
+            <button
+              onClick={() => { setUseHighThinking(!useHighThinking); if(!useHighThinking) setUseLowLatency(false); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${useHighThinking ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+            >
+              <Brain size={13} /> Deep Thinking
+            </button>
+            <button
+              onClick={() => { setUseLowLatency(!useLowLatency); if(!useLowLatency) setUseHighThinking(false); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none ${useLowLatency ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+            >
+              <Zap size={13} /> Flash Lite (Fast)
+            </button>
+          </div>
+
           <div className="flex gap-2.5 items-center">
-            {/* Upload image for Vision analysis */}
+            {/* Upload media for Vision analysis */}
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/*"
+              accept="image/*,video/*"
               className="hidden"
             />
             <button
@@ -633,6 +737,19 @@ export default function OmniChat() {
               <ImageIcon size={19} />
               <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                 Inspect Image (Vision)
+              </span>
+            </button>
+
+            {/* Mic Upload */}
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading}
+              className={`border p-3 h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm relative group ${isRecording ? "bg-red-50 text-red-600 border-red-300 animate-pulse" : "bg-white hover:bg-slate-200 border-slate-300 text-slate-600"}`}
+              title="Record Voice Note"
+            >
+              {isRecording ? <Square size={19} /> : <Mic size={19} />}
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                {isRecording ? "Stop Recording" : "Speak (Transcribe)"}
               </span>
             </button>
 

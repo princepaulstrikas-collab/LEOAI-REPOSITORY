@@ -25,6 +25,7 @@ const SUGGESTED_PROMPTS = [
 export default function OmniGen() {
   const [prompt, setPrompt] = useState("");
   const [selectedRatio, setSelectedRatio] = useState<AspectRatioType>("1:1");
+  const [selectedSize, setSelectedSize] = useState<"1K" | "2K" | "4K">("2K");
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -43,7 +44,8 @@ export default function OmniGen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: activePrompt,
-          aspectRatio: selectedRatio
+          aspectRatio: selectedRatio,
+          size: selectedSize
         })
       });
 
@@ -129,6 +131,33 @@ export default function OmniGen() {
                 >
                   <div className={`shrink-0 ${opt.iconStyle} ${isActive ? "border-white" : "border-slate-400"}`} />
                   <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Resolution Picker */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+            Quality & Resolution
+          </label>
+          <div className="grid grid-cols-3 gap-2.5">
+            {["1K", "2K", "4K"].map((s) => {
+              const isActive = selectedSize === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSelectedSize(s as any)}
+                  disabled={isLoading}
+                  className={`p-3 rounded-xl flex items-center justify-center transition-all text-center text-xs font-bold border-2 cursor-pointer ${
+                    isActive
+                      ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                      : "bg-slate-50 border-transparent hover:bg-slate-100 text-slate-700 disabled:opacity-50"
+                  }`}
+                >
+                  {s}
                 </button>
               );
             })}
