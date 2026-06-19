@@ -131,11 +131,11 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
             
             {/* Header branding */}
             <div className="text-center space-y-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto text-white shadow-lg mb-2">
-                <Lock size={18} />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-lg mb-2 shadow-indigo-500/10">
+                <ShieldCheck size={18} />
               </div>
-              <h3 className="text-lg font-serif italic text-white">LEO Client Authentication</h3>
-              <p className="text-xs text-gray-500">Initialize a client session tunnel safely below.</p>
+              <h3 className="text-lg font-serif italic text-white">LEOREX AI Security Gateway</h3>
+              <p className="text-xs text-gray-500">Initialize a client session tunnel on the LEOREX network.</p>
             </div>
 
             {error && (
@@ -169,7 +169,7 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
             </div>
 
             {/* Google Sign In Button */}
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
                <button
                 type="button"
                 onClick={handleGoogleSignIn}
@@ -184,6 +184,23 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
                 </svg>
                 Continue with Google
               </button>
+
+              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3 text-[11px] leading-relaxed text-[#fcd34d] font-sans space-y-1.5 animate-fadeIn">
+                <p className="font-bold flex items-center gap-1.5 text-[#fbbf24] font-mono uppercase text-[9px] tracking-wider">
+                  ⚠️ Google Auth Blocked inside Iframe?
+                </p>
+                <p className="text-gray-400">
+                  Many browsers block external authentication popups inside embedded preview windows due to nested cross-origin restrictions.
+                </p>
+                <ul className="list-disc pl-4 text-gray-400 space-y-1">
+                  <li>
+                    Click <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-bold hover:underline inline-flex items-center gap-0.5">Open Standalone App ↗</a> to run it in a cleaner, standalone window where Google auth popup succeeds instantly!
+                  </li>
+                  <li>
+                    Or, click on <strong>Create Account</strong> below to register instantly with any email and secure password (unconstrained by popups).
+                  </li>
+                </ul>
+              </div>
             </div>
             
             <div className="flex items-center gap-3">

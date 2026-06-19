@@ -1,6 +1,6 @@
 {
-  "name": "LEO AI",
-  "description": "LEO AI is an all-in-one suite with secure encrypted messaging, text-to-speech narrations, text-to-video simulations, art generative creation, and premium membership controls.",
+  "name": "LEOREX AI",
+  "description": "LEOREX AI is a secure, military-grade intelligence application with encrypted real-time AI assistance, high-fidelity image generation, security status monitors, custom public feedbacks, and premium system configurations.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

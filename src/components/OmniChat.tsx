@@ -3,6 +3,8 @@ import { Message, Persona } from "../types";
 import { Send, Upload, Trash2, MessageSquare, Loader2, Image as ImageIcon, X, Copy, Check, Share2, ThumbsUp, ThumbsDown, FileText, Download, Mic, Square, Search, MapPin, Zap, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { jsPDF } from "jspdf";
+import { db } from "../lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const PERSONAS: Persona[] = [
   {
@@ -72,7 +74,7 @@ const PERSONAS: Persona[] = [
   }
 ];
 
-export default function OmniChat() {
+export default function OmniChat({ userSession, onLogEvent }: { userSession?: any, onLogEvent?: (txt: string) => void }) {
   const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONAS[0]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -343,42 +345,94 @@ export default function OmniChat() {
     setInputValue("");
     setAttachment(null);
 
+    // Detect if user wishes to dream, paint or generate images
+    const isImageGenerationRequest = 
+      /imagine|create image|generate image|draw a|paint a|sketch a|render an artwork/i.test(activePrompt);
+
     try {
-      // Map history to server spec
-      const apiHistory = messages.map(m => ({
-        role: m.role,
-        text: m.text
-      }));
-
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: userMsg.text,
-          systemInstruction: selectedPersona.instruction,
-          history: apiHistory,
-          attachment: userMsg.attachment ? {
-            data: userMsg.attachment.data,
-            mimeType: userMsg.attachment.mimeType
-          } : undefined,
-          useSearch,
-          useMaps,
-          useHighThinking,
-          useLowLatency
-        })
-      });
-
-      const resData = await response.json();
-
-      if (!response.ok || resData.error) {
-        throw new Error(resData.error || "Generation error on server.");
+      // Save data usage to Firestore
+      try {
+        await addDoc(collection(db, "leorex_data_usage"), {
+          category: isImageGenerationRequest ? "Artwork Synthesis" : "Conversational AI",
+          prompt: activePrompt,
+          email: userSession?.email || "anonymous_user",
+          username: userSession?.username || "client_guest",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn("Could not save telemetry to Firestore", e);
       }
 
-      const modelMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "model",
-        text: resData.text || "I was unable to understand that request. Could you clarify?"
-      };
+      if (onLogEvent) {
+        onLogEvent(`Dispatched prompts payload: "${activePrompt.substring(0, 30)}..." to Leorex Hub.`);
+      }
+
+      let modelMsg: Message;
+
+      if (isImageGenerationRequest) {
+        // Direct inline Image Synthesizer
+        const response = await fetch("/api/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: activePrompt,
+            aspectRatio: "1:1"
+          })
+        });
+
+        const imgData = await response.json();
+        if (!response.ok || imgData.error) {
+          throw new Error(imgData.error || "Image server synthesis failed.");
+        }
+
+        modelMsg = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          text: `🎨 **LEOREX AI Artwork Dreamer core online!**\n\nI have successfully synthesized a custom 1K resolution image according to your instruction: *"${activePrompt}"*\n\nFeel free to download the high-fidelity output as an asset.`,
+          attachment: {
+            data: imgData.imageUrl,
+            mimeType: "image/png",
+            name: "leorex_dream_art.png"
+          }
+        };
+      } else {
+        // Map history to server spec
+        const apiHistory = messages.map(m => ({
+          role: m.role,
+          text: m.text
+        }));
+
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: userMsg.text,
+            systemInstruction: selectedPersona.instruction,
+            history: apiHistory,
+            attachment: userMsg.attachment ? {
+              data: userMsg.attachment.data,
+              mimeType: userMsg.attachment.mimeType
+            } : undefined,
+            useSearch,
+            useMaps,
+            useHighThinking,
+            useLowLatency
+          })
+        });
+
+        const resData = await response.json();
+
+        if (!response.ok || resData.error) {
+          throw new Error(resData.error || "Generation error on server.");
+        }
+
+        modelMsg = {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          text: resData.text || "I was unable to understand that request."
+        };
+      }
 
       saveHistory([...currentHistory, modelMsg]);
     } catch (e: any) {

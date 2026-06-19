@@ -1,3 +1,43 @@
 {
-  "entities": []
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A secure communication message between users and contacts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "contactId": { "type": "string" },
+        "sender": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "isRead": { "type": "boolean" }
+      },
+      "required": ["id", "contactId", "sender", "text", "timestamp", "isRead"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "A messaging contact in the workspace directory",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "statusText": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["id", "name", "avatar", "statusText", "isOnline"]
+    }
+  },
+  "firestore": {
+    "/messenger_messages/{messageId}": {
+      "schema": "Message",
+      "description": "Database storing real messaging stream payloads"
+    },
+    "/messenger_contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Directory of user contacts"
+    }
+  }
 }

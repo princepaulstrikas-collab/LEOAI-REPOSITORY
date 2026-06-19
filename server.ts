@@ -39,7 +39,7 @@ async function generateContentWithHeal(
   model: string,
   contents: any,
   config: any,
-  backupModels: string[] = ["gemini-1.5-flash", "gemini-2.5-flash"]
+  backupModels: string[] = ["gemini-3.1-flash-lite", "gemini-flash-latest"]
 ) {
   const modelsToTry = [model, ...backupModels];
   let finalError: any = null;
@@ -153,7 +153,7 @@ app.post("/api/chat", async (req: express.Request, res: express.Response) => {
     if (useSearch) tools.push({ googleSearch: {} });
     if (useMaps) tools.push({ googleMaps: {} });
 
-    let modelToUse = "gemini-3.5-flash";
+    let modelToUse = "gemini-flash-latest";
     if (useLowLatency) modelToUse = "gemini-3.1-flash-lite";
     // For video analysis or high thinking, we use pro
     if (useHighThinking || (attachment && attachment.mimeType.startsWith("video/"))) {
@@ -253,7 +253,7 @@ app.post("/api/transcribe", async (req: express.Request, res: express.Response) 
     const ai = getAI();
     const { response } = await generateContentWithHeal(
       ai,
-      "gemini-3.5-flash",
+      "gemini-flash-latest",
       [{
         inlineData: {
           data: base64Data,
@@ -391,7 +391,7 @@ app.post("/api/music", async (req: express.Request, res: express.Response) => {
     // Use healed generator to bypass quota/demand peaks
     const { response: promptRefiner } = await generateContentWithHeal(
       ai,
-      "gemini-3.5-flash",
+      "gemini-flash-latest",
       `Design a procedural music plan for prompt: "${prompt}". Return purely a JSON block containing:
       {
         "tempo": number (e.g., 60 to 140),
@@ -483,7 +483,7 @@ app.post("/api/video", async (req: express.Request, res: express.Response) => {
     // Refinement: leverage auto-healing generator to build a custom rendering setup block for our canvas fallback
     const { response: promptRefiner } = await generateContentWithHeal(
       ai,
-      "gemini-3.5-flash",
+      "gemini-flash-latest",
       `You are Veo 3.1 AI Render Core. Cleanly parse the following video prompt and write a custom 3D drawing, motion, and particle instructions block so our HTML5 Canvas can draw a beautiful, fluid, continuous cinematic simulation while loading.
       Prompt: "${prompt}"
       
@@ -798,10 +798,11 @@ app.post("/api/blueprint", async (req: express.Request, res: express.Response) =
 
     const ai = getAI();
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `Create a comprehensive, actionable project blueprint/schedule to achieve this goal: "${goal}". Target Difficulty: ${difficultyPref}. Include detailed, high-impact tasks and breakdown.`,
-      config: {
+    const { response } = await generateContentWithHeal(
+      ai,
+      "gemini-flash-latest",
+      `Create a comprehensive, actionable project blueprint/schedule to achieve this goal: "${goal}". Target Difficulty: ${difficultyPref}. Include detailed, high-impact tasks and breakdown.`,
+      {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -857,7 +858,7 @@ app.post("/api/blueprint", async (req: express.Request, res: express.Response) =
           required: ["title", "summary", "difficulty", "estimatedTotalTime", "tips", "phases"]
         }
       }
-    });
+    );
 
     let blueprintObj = {};
     if (response.text) {

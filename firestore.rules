@@ -11,6 +11,15 @@ service cloud.firestore {
       }
     }
     
+    // Add public read/write permission for real-time messaging collections
+    match /messenger_messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    match /messenger_contacts/{contactId} {
+      allow read, write: if true;
+    }
+    
     // Explicit deny for everything else (this is the default, but good to be clear)
     match /{document=**} {
       allow read, write: if false;
