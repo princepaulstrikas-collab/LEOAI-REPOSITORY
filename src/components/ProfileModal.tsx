@@ -109,7 +109,7 @@ export default function ProfileModal({
     <div id="leorex-profile-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs">
       
       {/* Outer Card */}
-      <div className={`w-full max-w-xl rounded-2xl relative shadow-2xl border transition-all duration-300 ${
+      <div className={`w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl relative shadow-2xl border transition-all duration-300 ${
         isDarkMode 
           ? "bg-[#0c0c0e] border-white/10 text-gray-200" 
           : "bg-white border-slate-300 text-slate-800"

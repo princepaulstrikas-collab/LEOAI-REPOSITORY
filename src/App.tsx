@@ -285,77 +285,7 @@ export default function App() {
           </span>
         </div>
 
-        {/* Dynamic Navigation Tabs (Visible only if logged-in) */}
-        {isLoggedIn && (
-          <nav className="hidden xl:flex gap-5 text-[10px] uppercase tracking-[0.18em] font-medium text-gray-400 select-none">
-            <button
-              onClick={() => setActiveTab("orchestrator")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "orchestrator" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              Omni Chat & Art
-            </button>
-            <button
-              onClick={() => setActiveTab("ai_support")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "ai_support" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              AI Support Node
-            </button>
-            <button
-              onClick={() => setActiveTab("synthetics")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "synthetics" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              Media Studio
-            </button>
-            <button
-              onClick={() => setActiveTab("security_shield")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "security_shield" ? "text-indigo-400 border-b-2 border-indigo-500 font-bold animate-pulse" : "hover:text-white"
-              }`}
-            >
-              Security Shield
-            </button>
-            {isAdmin && (
-              <button
-                onClick={() => setActiveTab("admin_telemetry")}
-                className={`cursor-pointer transition-all pb-1 px-2.5 py-0.5 rounded-md bg-amber-500/5 border ${
-                  activeTab === "admin_telemetry" ? "text-yellow-300 border-yellow-500 font-bold bg-amber-500/10" : "text-amber-500 border-amber-500/25 hover:text-white hover:border-white/30"
-                }`}
-              >
-                Owner Telemetry
-              </button>
-            )}
-            <button
-              onClick={() => setActiveTab("narration")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "narration" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              Narrator
-            </button>
-            <button
-              onClick={() => setActiveTab("acoustics")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "acoustics" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              Acoustics
-            </button>
-            <button
-              onClick={() => setActiveTab("blueprints")}
-              className={`cursor-pointer transition-all pb-1 ${
-                activeTab === "blueprints" ? "text-amber-400 border-b-2 border-amber-500 font-bold" : "hover:text-white"
-              }`}
-            >
-              Strategic Blueprints
-            </button>
-          </nav>
-        )}
+        {/* Dynamic Vitals Area */}
 
         {/* User / Workspace Vitals */}
         <div className="flex items-center gap-4">
@@ -518,6 +448,31 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* PWA Mobile Shortcut Installer Guide */}
+              <div className="bg-[#050505] border border-dashed border-amber-500/20 rounded-2xl p-4 text-left text-xs space-y-2.5 leading-relaxed max-w-sm sm:max-w-md">
+                <p className="text-[#fbbf24] font-bold flex items-center gap-1.5 font-mono uppercase text-[10px] tracking-wider select-none">
+                  <span>📱 Premium Mobile Home-Screen App Setup</span>
+                </p>
+                <p className="text-gray-400">
+                  This platform is 100% optimized to launch as a full-screen, bezel-less application on iOS Safari & Android Chrome models:
+                </p>
+                <div className="grid grid-cols-1 gap-2.5 pt-0.5 text-[11px]">
+                  <div className="p-2.5 rounded-xl bg-white/2 border border-white/5 space-y-1">
+                    <span className="font-semibold text-white">🍎 Apple iOS Guide (Safari)</span>
+                    <p className="text-gray-400 leading-relaxed text-[11.5px]">
+                      Press <strong className="text-indigo-400">Share</strong> (footer box), scroll and select <strong className="text-[#fbbf24]">"Add to Home Screen"</strong> to install.
+                    </p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white/2 border border-white/5 space-y-1">
+                    <span className="font-semibold text-white">🤖 Android Guide (Chrome)</span>
+                    <p className="text-gray-400 leading-relaxed text-[11.5px]">
+                      Tap <strong className="text-indigo-400">three dots</strong> (top-right option list) and select <strong className="text-[#fbbf24]">"Add to Home Screen"</strong> or <strong className="text-[#fbbf24]">"Install App"</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <div className="text-[10px] uppercase font-mono text-gray-650 flex items-center gap-2">
@@ -673,7 +628,7 @@ export default function App() {
               )}
 
               {/* Tab Selector for Tablet/Mobile screens */}
-              <div className="xl:hidden flex overflow-x-auto gap-2 p-4 border-b border-white/5 bg-[#0a0a0a]/50 select-none scrollbar-none relative z-10">
+              <div className="lg:hidden flex overflow-x-auto gap-2 p-4 border-b border-white/5 bg-[#0a0a0a]/50 select-none scrollbar-none relative z-10">
                 {([
                   { id: "orchestrator", label: "Guide", icon: Compass },
                   { id: "ai_support", label: "AI Support", icon: HelpCircle },

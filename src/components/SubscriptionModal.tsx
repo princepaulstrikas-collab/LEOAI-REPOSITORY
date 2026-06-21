@@ -135,7 +135,7 @@ export default function SubscriptionModal({ isOpen, onClose, userSession, onUpgr
     <div id="leo-subscription-portal" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
       
       {/* Container Card */}
-      <div className="bg-[#0a0a0a] border border-white/10 w-full max-w-xl rounded-2xl p-6 relative shadow-2xl overflow-hidden animate-scaleUp text-gray-200">
+      <div className="bg-[#0a0a0a] border border-white/10 w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl p-6 relative shadow-2xl animate-scaleUp text-gray-200">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-yellow-500 via-amber-500 to-indigo-500" />
         <div className="absolute top-0 right-0 w-48 h-48 bg-[radial-gradient(circle_at_100%_0%,rgba(234,179,8,0.06),transparent_70%)] pointer-events-none" />
 
