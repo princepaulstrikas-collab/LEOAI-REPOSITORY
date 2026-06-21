@@ -16,7 +16,7 @@ import AISupportNode from "./components/AISupportNode";
 // Firebase imports
 import { auth, db } from "./lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, setDoc, doc, getDoc } from "firebase/firestore";
 
 // Icons
 import { 
@@ -91,14 +91,51 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const isUserAdmin = firebaseUser.email?.toLowerCase() === "princepaulstrikas@gmail.com";
-        const cleanName = firebaseUser.displayName 
-          ? firebaseUser.displayName.toLowerCase().replace(/\s+/g, "_")
+        let databaseUsername = firebaseUser.displayName;
+        let databaseIsPremium = isUserAdmin || false;
+
+        // 1. Fetch from Firestore if registered
+        try {
+          const userDocSnap = await getDoc(doc(db, "leorex_user_registry", firebaseUser.uid));
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data();
+            if (data.isPremium) {
+              databaseIsPremium = true;
+            }
+            if (!databaseUsername && data.username) {
+              databaseUsername = data.username;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Could not retrieve user registry metadata:", fetchErr);
+        }
+
+        // 2. Fetch from temporary registration session marker
+        const localWantsPremium = localStorage.getItem("leorex_wants_premium") === "true";
+        if (localWantsPremium) {
+          databaseIsPremium = true;
+          localStorage.removeItem("leorex_wants_premium");
+        }
+
+        // 3. Fallback to profile reloading if name is still empty
+        if (!databaseUsername) {
+          try {
+            await firebaseUser.reload();
+            const reloadedUser = auth.currentUser || firebaseUser;
+            databaseUsername = reloadedUser.displayName;
+          } catch (rErr) {
+            console.warn("Fell back to email name string parsing:", rErr);
+          }
+        }
+
+        const cleanName = databaseUsername 
+          ? databaseUsername.toLowerCase().replace(/\s+/g, "_")
           : firebaseUser.email?.split("@")[0] || "member";
         
         const freshSession: UserSession = {
           username: cleanName,
           email: firebaseUser.email || "",
-          isPremium: isUserAdmin || false, // Admins automatically receive sovereign premium levels
+          isPremium: databaseIsPremium,
           dailyFreeVideoCount: 0
         };
 
@@ -110,7 +147,7 @@ export default function App() {
           await setDoc(doc(db, "leorex_user_registry", firebaseUser.uid), {
             email: firebaseUser.email || "",
             username: cleanName,
-            isPremium: isUserAdmin || false,
+            isPremium: databaseIsPremium,
             lastLogin: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " " + new Date().toLocaleDateString(),
             createdAt: serverTimestamp()
           }, { merge: true });

@@ -67,14 +67,14 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
     try {
       let user;
       if (authMode === "signup") {
-        user = await signUpWithEmail(email, password);
+        user = await signUpWithEmail(email, password, username);
       } else {
         user = await signInWithEmail(email, password);
       }
       
       const sessionUsername = authMode === "signup" 
         ? username.toLowerCase().replace(/\s+/g, "_") 
-        : (user.email?.split("@")[0] || "client_user");
+        : (user.displayName || user.email?.split("@")[0] || "client_user");
 
       const newSession: UserSession = {
         username: sessionUsername,
@@ -83,14 +83,26 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
         dailyFreeVideoCount: 0
       };
 
+      if (wantsPremiumOnSignUp) {
+        localStorage.setItem("leorex_wants_premium", "true");
+      }
+
       onSignIn(newSession);
       setStep("success");
     } catch (err: any) {
       console.error(err);
       let errMsg = "Authentication failed.";
-      if (err.code === "auth/email-already-in-use") errMsg = "Email already in use.";
-      if (err.code === "auth/invalid-credential") errMsg = "Invalid email or password.";
-      if (err.code === "auth/weak-password") errMsg = "Password is too weak.";
+      if (err.code === "auth/email-already-in-use") {
+        errMsg = "This email is already registered. Please sign in instead.";
+      } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+        errMsg = "Invalid email or correct password. Please verify your entries.";
+      } else if (err.code === "auth/weak-password") {
+        errMsg = "Password is too weak. Please ensure it passes the security check.";
+      } else if (err.code === "auth/operation-not-allowed") {
+        errMsg = "Email/Password sign-in has not been enabled for your project inside the Firebase Console. Go to Authentication > Sign-in method to activate it.";
+      } else if (err.message) {
+        errMsg = `Auth Error (${err.code || "unknown"}): ${err.message}`;
+      }
       setError(errMsg);
     } finally {
       setIsProcessing(false);
@@ -110,11 +122,23 @@ export default function SignInModal({ isOpen, onClose, userSession, onSignIn }: 
         dailyFreeVideoCount: 0
       };
 
+      if (wantsPremiumOnSignUp) {
+        localStorage.setItem("leorex_wants_premium", "true");
+      }
+
       onSignIn(newSession);
       setStep("success");
     } catch (err: any) {
       console.error(err);
-      setError("Google Sign-In failed or was cancelled.");
+      let errMsg = "Google Sign-In failed or was cancelled.";
+      if (err.code === "auth/popup-blocked") {
+        errMsg = "Google pop-up was blocked by your browser. Please allow popups or use the Standalone App view.";
+      } else if (err.code === "auth/operation-not-allowed") {
+        errMsg = "Google sign-in has not been enabled in your Firebase Console. Under 'Authentication' -> 'Sign-in method', please activate the Google provider.";
+      } else if (err.message) {
+        errMsg = `Google Sign-In Error (${err.code || "unknown"}): ${err.message}`;
+      }
+      setError(errMsg);
     } finally {
       setIsProcessing(false);
     }

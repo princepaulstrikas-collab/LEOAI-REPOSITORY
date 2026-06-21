@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
@@ -20,9 +20,12 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const signUpWithEmail = async (email: string, pass: string) => {
+export const signUpWithEmail = async (email: string, pass: string, displayName?: string) => {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, pass);
+    if (displayName && result.user) {
+      await updateProfile(result.user, { displayName });
+    }
     return result.user;
   } catch (error) {
     console.error("Error signing up with email", error);

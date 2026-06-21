@@ -2,25 +2,56 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic secure rule: users can only read/write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-    
-    // Add public read/write permission for real-time messaging collections
+    // Modern multi-user chat collections
     match /messenger_messages/{messageId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
 
     match /messenger_contacts/{contactId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
-    
-    // Explicit deny for everything else (this is the default, but good to be clear)
+
+    // Default user identity index
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // LEOREX Official User Registry
+    match /leorex_user_registry/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // User-specific Profile Configuration details matching their verified Email address
+    match /leorex_users_config/{email} {
+      allow read, write: if request.auth != null && (request.auth.token.email == email || request.auth.token.email == "princepaulstrikas@gmail.com");
+    }
+
+    // Premium Sovereign Payment Ledger entries
+    match /leorex_payments/{paymentId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && (resource == null || resource.data.userEmail == request.auth.token.email || request.auth.token.email == "princepaulstrikas@gmail.com");
+      allow update, delete: if request.auth != null && request.auth.token.email == "princepaulstrikas@gmail.com";
+    }
+
+    // Customer Sidebars and Reviews feedback threads (public read/create, admin mutate)
+    match /leorex_feedbacks/{feedbackId} {
+      allow read, create: if true;
+      allow update, delete: if request.auth != null && request.auth.token.email == "princepaulstrikas@gmail.com";
+    }
+
+    // Client Complaint threads
+    match /leorex_complaints/{complaintId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && (resource == null || resource.data.userEmail == request.auth.token.email || request.auth.token.email == "princepaulstrikas@gmail.com");
+    }
+
+    // Technical Traffic Telemetry logs
+    match /leorex_data_usage/{usageId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && (resource == null || resource.data.userEmail == request.auth.token.email || request.auth.token.email == "princepaulstrikas@gmail.com");
+    }
+
+    // Global Safety Net Default-Deny Fallback
     match /{document=**} {
       allow read, write: if false;
     }
